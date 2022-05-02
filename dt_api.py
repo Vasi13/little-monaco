@@ -16,6 +16,7 @@ class Dynatrace():
             "Content-Type": "application/json"
         }
 
+    '''TAGS'''
     def getAutoTags(self):
         logging.debug('Downloading all Tags from {}'.format(self.url))
         _url = self.url + '/api/config/v1/autoTags'
@@ -40,19 +41,88 @@ class Dynatrace():
         res = self.make_request(_url, method='POST', payload=_payload)
         return res.status_code
 
-    def updateTag(self, tag):
-        #TODO: updates the tag with the new passed ruls
-        tagId = tag['id']
-        logging.info('Updating Tag: {}'.format(tag['name']))
-        _url = self.url + '/api/config/v1/autoTags/' + tagId
-        _payload = json.dumps(tag)
-        self.make_request(_url, method='PUT', payload=_payload)
+    '''Dasboards'''
+    def getDashboards(self):
+        logging.debug('Downloading all Dashboards from {}'.format(self.url))
+        _url = self.url + '/api/config/v1/dashboards'
+        res = self.make_request(_url, method='GET')
+        res_json = json.loads(res.text)
+        return res_json['dashboards']
 
-    def getServiceName(self, svcId):
-        print('get svc name')
+    def getSingleDashboard(self, dashboardId):
+        _url = self.url + '/api/config/v1/dashboards/' + dashboardId
+        res = self.make_request(_url, method='GET')
+        return json.loads(res.text)
 
-    def getServiceNameList(self):
-        print('get svc name list')
+    def pushDashboard(self, dashboard):
+        _url = self.url + '/api/config/v1/dashboards'
+        logging.info('Uploading new Dashboard: {}'.format(dashboard['dashboardMetadata']['name']))
+        _payload = json.dumps(dashboard)
+        res = self.make_request(_url, method='POST', payload=_payload)
+        return res.status_code
+
+    '''Synthetic Monitors'''
+
+    def getSyntheticMonitors(self, parameters=None):
+        logging.debug('Downloading all Synthetic Monitors from {}'.format(self.url))
+        _url = self.url + '/api/v1/synthetic/monitors'
+        res = self.make_request(_url, method='GET', parameters=parameters)
+        res_json = json.loads(res.text)
+        return res_json['monitors']
+
+    def getSingleSyntheticMonitor(self, monitorId):
+        _url = self.url + '/api/v1/synthetic/monitors/' + monitorId
+        res = self.make_request(_url, method='GET')
+        return json.loads(res.text)
+
+    def pushSyntheticMonitor(self, monitor):
+        _url = self.url + '/api/v1/synthetic/monitors'
+        logging.info('Uploading new Synthetic Monitor: {}'.format(monitor['name']))
+        _payload = json.dumps(monitor)
+        res = self.make_request(_url, method='POST', payload=_payload)
+        return res.status_code
+
+    '''Request Attributes'''
+
+    def getRequestAttributes(self):
+        logging.debug('Downloading all Request Attributes from {}'.format(self.url))
+        _url = self.url + '/api/config/v1/service/requestAttributes'
+        res = self.make_request(_url, method='GET')
+        res_json = json.loads(res.text)
+        return res_json['values']
+
+    def getSingleRequestAttribute(self, requestAttributeId):
+        _url = self.url + '/api/config/v1/service/requestAttributes/' + requestAttributeId
+        res = self.make_request(_url, method='GET')
+        return json.loads(res.text)
+
+    def pushRequestAttribute(self, requestAttribute):
+        _url = self.url + '/api/config/v1/service/requestAttributes'
+        logging.info('Uploading new Request Attribute: {}'.format(requestAttribute['name']))
+        _payload = json.dumps(requestAttribute)
+        res = self.make_request(_url, method='POST', payload=_payload)
+        return res.status_code
+
+    '''Calculated Metrics'''
+
+    def getCalculatedMetrics(self):
+        logging.debug('Downloading all Calculated Metrics from {}'.format(self.url))
+        _url = self.url + '/api/config/v1/calculatedMetrics/service'
+        res = self.make_request(_url, method='GET')
+        res_json = json.loads(res.text)
+        return res_json['values']
+
+    def getSingleCalculatedMetric(self, calculatedMetricId):
+        _url = self.url + '/api/config/v1/calculatedMetrics/service/' + calculatedMetricId
+        res = self.make_request(_url, method='GET')
+        return json.loads(res.text)
+
+    def pushCalculatedMetric(self, calculatedMetric):
+        _url = self.url + '/api/config/v1/calculatedMetrics/service'
+        logging.info('Uploading new Calculated Metric: {}'.format(calculatedMetric['name']))
+        _payload = json.dumps(calculatedMetric)
+        res = self.make_request(_url, method='POST', payload=_payload)
+        return res.status_code
 
     def make_request(self, url, parameters=None, method=None, payload=None):
         '''makes post or get request request'''

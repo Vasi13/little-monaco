@@ -4,18 +4,19 @@ Short description of the scripts functionality
 Example (in your terminal):
     $ python3 little_monaco.py 
 
-Author: Mark Bley
+Author: Vasile Gafton
 Date:	28.06.2021
 Version: 0.1
 libs: argparse, json, urllib3
 """
+
 import time
 import urllib3
 import json
-import requests
 import configparser
 import argparse
 from dt_api import Dynatrace
+import tools as tools
 import logging
 logging.basicConfig(
     # level=logging.DEBUG,
@@ -71,6 +72,7 @@ def init():
     # TODO: check that src and dst are not same, check dt got initialized correctly (?)
     #dstDt = Dynatrace(ROOT_URL, TOKEN)
     return srcDt, dstDt
+
 
 
 def findNewTags(srcAutoTags, dstAutoTags):
@@ -167,20 +169,87 @@ def uploadNewTags(srcDt, dstDt):
             time.sleep(1)
             res = dstDt.pushAutoTag(tag_json)
 
+def downloadDashboardsLocally(srcDt):
+    entities = []
+    dashboardsToMigrate = ["DSS dashboard",
+                           "Azure custom charts - PROD",
+                           "BTB Brand Websites Synthetic monitors - Production"]
+    dashboards = srcDt.getDashboards()
+    for dashboard in dashboards:
+        if dashboard["name"].startswith('NWNA') or dashboard["name"] in dashboardsToMigrate:
+            entity = srcDt.getSingleDashboard(dashboard["id"])
+            entities.append(entity)
+    tools.download(srcDt.url,"Dashboards", entities)
+
+def downloadSyntheticMonitorsLocally(srcDt):
+    entities = []
+    parameters = {
+        'managementZone': 8619667914839288924
+    }
+    nwnaMonitors = srcDt.getSyntheticMonitors(parameters)
+    for monitor in nwnaMonitors:
+        entity = srcDt.getSingleSyntheticMonitor(monitor["entityId"])
+        entity["enabled"] = False
+        entities.append(entity)
+
+    tools.download(srcDt.url, "Synthetic Monitors", entities)
+
+def downloadRequestAttributesLocally(srcDt):
+    entities = []
+    requestAttributesToMigrate = ["NWNA_userAgent",
+                                  "yPageController",
+                                  "yNumber of Search Results",
+                                  "rmsaccountID",
+                                  "referer",
+                                  "Load Test Name",
+                                  "yOrderItemCount",
+                                  "yPlaceOrder",
+                                  "yOrderValue",
+                                  "yCurrency"]
+    requestAttributes = srcDt.getRequestAttributes()
+    for requestAttribute in requestAttributes:
+        if requestAttribute["name"] in requestAttributesToMigrate:
+            entity = srcDt.getSingleRequestAttribute(requestAttribute["id"])
+            entities.append(entity)
+    tools.download(srcDt.url,"Request Attributes", entities)
+
+def downloadCalculatedMetricsLocally(srcDt):
+    entities = []
+    calculatedMetricsToMigrate = ["nwna_referer",
+                                  "PageController Response Time",
+                                  "yCronJob Response Time"]
+    calculatedMetrics = srcDt.getCalculatedMetrics()
+    for calculatedMetric in calculatedMetrics:
+        if calculatedMetric["name"] in calculatedMetricsToMigrate:
+            entity = srcDt.getSingleCalculatedMetric(calculatedMetric["id"])
+            entities.append(entity)
+    tools.download(srcDt.url, "Calculated Metrics", entities)
+
+def uploadLocalEntities(directory, srcDt, dstDt):
+    tools.upload(directory, srcDt.url,dstDt)
 
 def main():
     '''main'''
     srcDt, dstDt = init()
-    #uploadNewTags(srcDt, dstDt)
-    if CMD == 'updateTags':
-        uploadNewTags(srcDt, dstDt)
-    elif CMD == 'mergeTags':
-        mergeTags(srcDt, dstDt)
+
+    if CMD == 'downloadDashboards':
+        downloadDashboardsLocally(srcDt)
+    elif CMD == "uploadDashboards":
+        uploadLocalEntities("Dashboards", srcDt, dstDt)
+    elif CMD == 'downloadMonitors':
+        downloadSyntheticMonitorsLocally(srcDt)
+    elif CMD == "uploadMonitors":
+        uploadLocalEntities("Synthetic Monitors", srcDt, dstDt)
+    elif CMD == 'downloadRequestAttributes':
+        downloadRequestAttributesLocally(srcDt)
+    elif CMD == "uploadRequestAttributes":
+        uploadLocalEntities("Request Attributes", srcDt, dstDt)
+    elif CMD == 'downloadCalculatedMetrics':
+        downloadCalculatedMetricsLocally(srcDt)
+    elif CMD == "uploadCalculatedMetrics":
+        uploadLocalEntities("Calculated Metrics", srcDt, dstDt)
 
 
-# >>> exampleSet = [{'type':'type1'},{'type':'type2'},{'type':'type2'}, {'type':'type3'}]
-# >>> keyValList = ['type2','type3']
-# >>> expectedResult = [d for d in exampleSet if d['type'] in keyValList]
 
 
 if __name__ == '__main__':
